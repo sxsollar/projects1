@@ -211,6 +211,11 @@ int main() {
                 adminPanel();
                 break;
             case '3':
+                struct CandidateNode* currentCandidate = election.candidates;
+                while (currentCandidate != NULL) {
+                    struct CandidateNode* nextCandidate = currentCandidate->next;
+                    free(currentCandidate);
+                    currentCandidate = nextCandidate;
                 return 0;
             default:
                 printf("\nInvalid option");
