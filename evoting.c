@@ -2,6 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+int getWinner();
+int findCandidateVotes(int cid);
+void displayElectionInfoFromFile();
+
 struct CandidateNode {
     int cid;
     char cname[20];
@@ -46,7 +50,9 @@ void addCandidate(int cid, const char* cname) {
 }
 
 void displayCandidates() {
+    printf("List of Candidates:\n");
     struct CandidateNode* current = election.candidates;
+
     while (current != NULL) {
         printf("%d. %s\n", current->cid, current->cname);
         current = current->next;
@@ -68,28 +74,6 @@ void vote(char userID[15], char voteInput) {
         }
         current = current->next;
     }
-}
-
-void displayResult() {
-    int winnerCid = getWinner();
-
-    if (winnerCid != -1) {
-        printf("\nWinner is Candidate %d with %d votes\n", winnerCid, findCandidateVotes(winnerCid));
-    } else {
-        printf("\nIt's a tie!\n");
-    }
-
-    printf("\nFull Result:\n");
-    struct CandidateNode* current = election.candidates;
-    int totalVotedNow = 0;
-
-    while (current != NULL) {
-        totalVotedNow += current->votes;
-        printf("Candidate %d -> %d votes\n", current->cid, current->votes);
-        current = current->next;
-    }
-
-    printf("\nVoting Percentage: %d %%\n\n", (totalVotedNow * 100) / election.totalVoters);
 }
 
 const char* findCandidateName(int cid) {
@@ -138,31 +122,6 @@ int getWinner() {
     return winnerCid;
 }
 
-void adminPanel() {
-    int choice;
-    while (1) {
-        printf("\nAdmin Panel:\n");
-        printf("1. Display Candidates\n");
-        printf("2. Display Election Result\n");
-        printf("3. Logout\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                displayCandidates();
-                break;
-            case 2:
-                displayResult();
-                break;
-            case 3:
-                return;
-            default:
-                printf("Invalid option. Please try again.\n");
-        }
-    }
-}
-
 void studentPanel() {
     char userID[15];
     char voteInput;
@@ -188,15 +147,58 @@ void studentPanel() {
         }
 
         vote(userID, voteInput);
-        printf("\nThanks for your vote! (Press Enter)");
+        printf("\nThanks for your vote!");
         getchar();  // Consume the newline character left in the buffer
     }
 }
 
+void writeElectionToFile() {
+    FILE* file = fopen("C:/Users/admin/OneDrive/Desktop/project s1/election_info.txt", "w");
+    if (file == NULL) {
+        perror("Error opening file for writing election information");
+        return;
+    }
+
+    fprintf(file, "Year: %d\n", election.year);
+    fprintf(file, "Branch: %s\n", election.branch);
+    fprintf(file, "Total Voters: %d\n\n", election.totalVoters);
+
+    struct CandidateNode* currentCandidate = election.candidates;
+    while (currentCandidate != NULL) {
+        fprintf(file, "Candidate %d: %s - Votes: %d\n", currentCandidate->cid, currentCandidate->cname, currentCandidate->votes);
+        currentCandidate = currentCandidate->next;
+    }
+
+    if (fclose(file) != 0) {
+        perror("Error closing file");
+    }
+}
+
+void displayElectionInfoFromFile() {
+    FILE* file = fopen("C:/Users/admin/OneDrive/Desktop/project s1/election_info.txt", "r");
+    if (file == NULL) {
+        printf("Error opening file for reading election information.\n");
+        return;
+    }
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        // Remove newline characters and display each line
+        strtok(buffer, "\n");
+        printf("%s\n", buffer);
+    }
+    if (getWinner() != -1) {
+        printf("\nWinner: Candidate %d - %s\n", getWinner(), findCandidateName(getWinner()));
+    } else {
+        printf("\nIt's a tie!\n");
+    }
+    
+    fclose(file);
+}
+
 int main() {
     initElection();
-    addCandidate(1, "Candidate 1");
-    addCandidate(2, "Candidate 2");
+    addCandidate(1, "Petros");
+    addCandidate(2, "Poghos");
 
     while (1) {
         printf("\n\t\t\t   1.Student panel \n\t\t\t   2.Admin panel \n\t\t\t   3.Exit \n\t\t\t   Option:");
@@ -208,14 +210,18 @@ int main() {
                 studentPanel();
                 break;
             case '2':
-                adminPanel();
+                writeElectionToFile();
+                displayElectionInfoFromFile();
                 break;
             case '3':
+                {
                 struct CandidateNode* currentCandidate = election.candidates;
                 while (currentCandidate != NULL) {
                     struct CandidateNode* nextCandidate = currentCandidate->next;
                     free(currentCandidate);
-                    currentCandidate = nextCandidate;
+                    currentCandidate = nextCandidate;  
+                } 
+                }
                 return 0;
             default:
                 printf("\nInvalid option");
@@ -223,4 +229,3 @@ int main() {
     }
     return 0;
 }
-
